@@ -30,14 +30,32 @@ def _normalize(text: str) -> str:
     return re.sub(r'\n{3,}', '\n\n', text).strip()
 
 
-def _validate_url(url: str) -> tuple[bool, str]:
-    """Validate URL: must be http(s) with valid domain."""
+def _validate_url(url: str, enforce_https: bool = False) -> tuple[bool, str]:
+    """
+    Validate URL: must be http(s) with valid domain.
+    
+    Args:
+        url: URL to validate
+        enforce_https: If True, reject HTTP (non-encrypted) URLs
+    
+    Returns:
+        Tuple of (is_valid, error_message)
+    """
     try:
         p = urlparse(url)
         if p.scheme not in ('http', 'https'):
             return False, f"Only http/https allowed, got '{p.scheme or 'none'}'"
         if not p.netloc:
             return False, "Missing domain"
+        
+        # Security: Warn about unencrypted HTTP connections
+        if p.scheme == 'http':
+            if enforce_https:
+                return False, "HTTP not allowed - use HTTPS for secure connections"
+            # Log warning for HTTP usage
+            from loguru import logger
+            logger.warning(f"⚠️  Using HTTP (unencrypted) connection to {url}. Consider using HTTPS.")
+        
         return True, ""
     except Exception as e:
         return False, str(e)

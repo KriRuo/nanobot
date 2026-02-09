@@ -24,13 +24,20 @@ class ExecTool(Tool):
         self.working_dir = working_dir
         self.deny_patterns = deny_patterns or [
             r"\brm\s+-[rf]{1,2}\b",          # rm -r, rm -rf, rm -fr
+            r"\brm\s+(-[a-z]*[rf][a-z]*\s*)+",  # rm with any flags containing r or f
             r"\bdel\s+/[fq]\b",              # del /f, del /q
             r"\brmdir\s+/s\b",               # rmdir /s
             r"\b(format|mkfs|diskpart)\b",   # disk operations
             r"\bdd\s+if=",                   # dd
             r">\s*/dev/sd",                  # write to disk
-            r"\b(shutdown|reboot|poweroff)\b",  # system power
+            r"\b(shutdown|reboot|poweroff|halt)\b",  # system power
             r":\(\)\s*\{.*\};\s*:",          # fork bomb
+            r"\bsudo\s+",                    # sudo commands
+            r"/s?bin/(rm|mkfs|format|fdisk)",  # Full paths to dangerous commands
+            r"\bchmod\s+[0-7]{3,4}\s+/",     # chmod on root
+            r"\|\s*sh\b",                    # Pipe to shell
+            r"\|\s*bash\b",                  # Pipe to bash
+            r"(python|perl|ruby|node|php)\s+-[ce]",  # Interpreter one-liners
         ]
         self.allow_patterns = allow_patterns or []
         self.restrict_to_workspace = restrict_to_workspace

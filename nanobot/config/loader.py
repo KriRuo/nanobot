@@ -52,7 +52,7 @@ def save_config(config: Config, config_path: Path | None = None) -> None:
         config_path: Optional path to save to. Uses default if not provided.
     """
     path = config_path or get_config_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     
     # Convert to camelCase format
     data = config.model_dump()
@@ -60,6 +60,12 @@ def save_config(config: Config, config_path: Path | None = None) -> None:
     
     with open(path, "w") as f:
         json.dump(data, f, indent=2)
+    
+    # Security: Enforce restrictive permissions on config file (contains API keys)
+    try:
+        path.chmod(0o600)  # Owner read/write only
+    except (OSError, PermissionError) as e:
+        print(f"Warning: Could not set restrictive permissions on {path}: {e}")
 
 
 def _migrate_config(data: dict) -> dict:

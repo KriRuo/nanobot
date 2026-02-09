@@ -7,10 +7,31 @@ from nanobot.agent.tools.base import Tool
 
 
 def _resolve_path(path: str, allowed_dir: Path | None = None) -> Path:
-    """Resolve path and optionally enforce directory restriction."""
+    """
+    Resolve path and optionally enforce directory restriction.
+    
+    Security: Uses proper path ancestry checking to prevent traversal attacks.
+    """
     resolved = Path(path).expanduser().resolve()
-    if allowed_dir and not str(resolved).startswith(str(allowed_dir.resolve())):
-        raise PermissionError(f"Path {path} is outside allowed directory {allowed_dir}")
+    
+    if allowed_dir:
+        allowed_resolved = allowed_dir.resolve()
+        
+        # Security: Check if resolved path is within allowed directory
+        # Using path ancestry check instead of string comparison to prevent edge cases
+        # like "/workspace" allowing "/workspace-malicious/"
+        try:
+            # Check if allowed_dir is a parent of resolved or they are the same
+            if resolved != allowed_resolved and allowed_resolved not in resolved.parents:
+                raise PermissionError(
+                    f"Path {path} is outside allowed directory {allowed_dir}"
+                )
+        except (ValueError, OSError) as e:
+            # Handle edge cases like invalid paths or permission errors
+            raise PermissionError(
+                f"Cannot validate path {path}: {e}"
+            )
+    
     return resolved
 
 
