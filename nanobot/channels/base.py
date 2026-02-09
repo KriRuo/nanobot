@@ -70,8 +70,13 @@ class BaseChannel(ABC):
         """
         allow_list = getattr(self.config, "allow_from", [])
         
-        # If no allow list, allow everyone
+        # If no allow list, allow everyone (for personal use)
+        # WARNING: This is insecure for production. Set allowFrom in config.
         if not allow_list:
+            logger.warning(
+                f"⚠️  SECURITY WARNING: Channel '{self.name}' has no access control configured. "
+                f"Anyone can interact with this bot! Add 'allowFrom' list in config for production use."
+            )
             return True
         
         sender_str = str(sender_id)

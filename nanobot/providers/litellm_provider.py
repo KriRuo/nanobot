@@ -6,9 +6,21 @@ from typing import Any
 
 import litellm
 from litellm import acompletion
+from loguru import logger
 
 from nanobot.providers.base import LLMProvider, LLMResponse, ToolCallRequest
 from nanobot.providers.registry import find_by_model, find_gateway
+
+
+def _mask_api_key(key: str) -> str:
+    """
+    Mask API key for secure logging.
+    
+    Shows only first 4 and last 4 characters to prevent exposure in logs.
+    """
+    if not key or len(key) < 8:
+        return "***"
+    return f"{key[:4]}...{key[-4:]}"
 
 
 class LiteLLMProvider(LLMProvider):
@@ -55,6 +67,9 @@ class LiteLLMProvider(LLMProvider):
         if not spec:
             return
 
+        # Log with masked key for security
+        logger.debug(f"Setting up provider env for {spec.name}: {spec.env_key}={_mask_api_key(api_key)}")
+
         # Gateway/local overrides existing env; standard provider doesn't
         if self._gateway:
             os.environ[spec.env_key] = api_key
@@ -69,6 +84,7 @@ class LiteLLMProvider(LLMProvider):
             resolved = env_val.replace("{api_key}", api_key)
             resolved = resolved.replace("{api_base}", effective_base)
             os.environ.setdefault(env_name, resolved)
+            logger.debug(f"Setting {env_name}={_mask_api_key(resolved) if 'key' in env_name.lower() else resolved}")
     
     def _resolve_model(self, model: str) -> str:
         """Resolve model name by applying provider/gateway prefixes."""

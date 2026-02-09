@@ -31,7 +31,18 @@ RUN npm install && npm run build
 WORKDIR /app
 
 # Create config directory
-RUN mkdir -p /root/.nanobot
+RUN mkdir -p /root/.nanobot && chmod 700 /root/.nanobot
+
+# Create non-root user for security
+RUN useradd -m -u 1000 nanobot && \
+    chown -R nanobot:nanobot /app && \
+    mkdir -p /home/nanobot/.nanobot && \
+    chmod 700 /home/nanobot/.nanobot && \
+    chown nanobot:nanobot /home/nanobot/.nanobot
+
+# Switch to non-root user
+USER nanobot
+WORKDIR /home/nanobot
 
 # Gateway default port
 EXPOSE 18790
